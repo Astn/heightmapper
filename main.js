@@ -140,6 +140,16 @@ map = (function () {
         scene.requestRedraw();
     }
 
+    function getMetersPerPixel() {
+        // Based on https://wiki.openstreetmap.org/wiki/Zoom_levels
+        const C = 40075016.686;
+        const latitude = map.getBounds().getCenter().lat;
+        const zoomlevel = map.getZoom();
+        const metersPerPixel = C * Math.cos(latitude) / Math.pow(2, zoomlevel + 8);
+
+        return metersPerPixel;
+    }
+
     function analyse() {
         var ctx = tempCanvas.getContext("2d"); // Get canvas 2d context
         ctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
@@ -215,6 +225,7 @@ map = (function () {
         var zrange = (gui.u_max - gui.u_min);
         var xscale = zrange / scene.view.size.meters.x;
         gui.scaleFactor = xscale +''; // convert to string to make the display read-only
+        gui.metersPerPixel = getMetersPerPixel();
 
         scene.styles.hillshade.shaders.uniforms.u_min = minadj;
         scene.styles.hillshade.shaders.uniforms.u_max = maxadj;
@@ -255,6 +266,9 @@ map = (function () {
 
         gui.scaleFactor = 1 +'';
         gui.add(gui, 'scaleFactor').name("z:x scale factor");
+
+        gui.metersPerPixel = 1 +'';
+        gui.add(gui, 'metersPerPixel').name("meters per pixel");   
 
         gui.autoexpose = true;
         gui.add(gui, 'autoexpose').name("auto-exposure").onChange(function(value) {
