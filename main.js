@@ -66,6 +66,8 @@ map = (function () {
         scene: 'scene.yaml',
         attribution: 'Map by <a href="https://mapzen.com/tangram" target="_blank">Tangram</a> | <a href="https://github.com/tangrams/heightmapper" target="_blank">Fork This</a>',
         postUpdate: function() {
+            updateMetersPerPixel();
+
             if (gui.autoexpose && !stopped) {
                 // three stages:
                 // 1) start analysis
@@ -144,10 +146,16 @@ map = (function () {
         // Based on https://wiki.openstreetmap.org/wiki/Zoom_levels
         const C = 40075016.686;
         const latitude = map.getBounds().getCenter().lat;
+        const latitudeInRadians = latitude * Math.PI / 180;
         const zoomlevel = map.getZoom();
-        const metersPerPixel = C * Math.cos(latitude) / Math.pow(2, zoomlevel + 8);
+        const metersPerPixel = C * Math.cos(latitudeInRadians) / Math.pow(2, zoomlevel + 8);
 
         return metersPerPixel;
+    }
+
+    function updateMetersPerPixel() {
+        gui.metersPerPixel = getMetersPerPixel();
+        updateGUI();
     }
 
     function analyse() {
@@ -225,7 +233,6 @@ map = (function () {
         var zrange = (gui.u_max - gui.u_min);
         var xscale = zrange / scene.view.size.meters.x;
         gui.scaleFactor = xscale +''; // convert to string to make the display read-only
-        gui.metersPerPixel = getMetersPerPixel();
 
         scene.styles.hillshade.shaders.uniforms.u_min = minadj;
         scene.styles.hillshade.shaders.uniforms.u_max = maxadj;
@@ -384,7 +391,6 @@ window.go = go;
 
     // draw boundary and water lines
     function toggleLines(active) {
-        // scene.config.layers.water.visible = active;
         scene.styles.togglelines.shaders.uniforms.u_alpha = active ? 1. : 0.;
         scene.requestRedraw();
     }
