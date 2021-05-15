@@ -66,6 +66,8 @@ map = (function () {
         scene: 'scene.yaml',
         attribution: 'Map by <a href="https://mapzen.com/tangram" target="_blank">Tangram</a> | <a href="https://github.com/tangrams/heightmapper" target="_blank">Fork This</a>',
         postUpdate: function() {
+            updateMetersPerPixel();
+
             if (gui.autoexpose && !stopped) {
                 // three stages:
                 // 1) start analysis
@@ -138,6 +140,22 @@ map = (function () {
             scene.styles.hillshade.shaders.uniforms.u_max = levels.max;
         }
         scene.requestRedraw();
+    }
+
+    function getMetersPerPixel() {
+        // Based on https://wiki.openstreetmap.org/wiki/Zoom_levels
+        const C = 40075016.686;
+        const latitude = map.getBounds().getCenter().lat;
+        const latitudeInRadians = latitude * Math.PI / 180;
+        const zoomlevel = map.getZoom();
+        const metersPerPixel = C * Math.cos(latitudeInRadians) / Math.pow(2, zoomlevel + 8);
+
+        return metersPerPixel;
+    }
+
+    function updateMetersPerPixel() {
+        gui.metersPerPixel = getMetersPerPixel();
+        updateGUI();
     }
 
     function analyse() {
@@ -256,6 +274,9 @@ map = (function () {
         gui.scaleFactor = 1 +'';
         gui.add(gui, 'scaleFactor').name("z:x scale factor");
 
+        gui.metersPerPixel = 1 +'';
+        gui.add(gui, 'metersPerPixel').name("meters per pixel");   
+
         gui.autoexpose = true;
         gui.add(gui, 'autoexpose').name("auto-exposure").onChange(function(value) {
             sliderState(!value);
@@ -370,7 +391,6 @@ window.go = go;
 
     // draw boundary and water lines
     function toggleLines(active) {
-        // scene.config.layers.water.visible = active;
         scene.styles.togglelines.shaders.uniforms.u_alpha = active ? 1. : 0.;
         scene.requestRedraw();
     }
